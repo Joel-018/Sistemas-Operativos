@@ -1,0 +1,59 @@
+#include <fcntl.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/stat.h>
+
+char buf[256];
+
+unsigned char computeCRC(char *data, int nBytes) {
+    // Implementation of CRC calculation
+    // Replace this with your actual CRC implementation
+
+    unsigned char crc = 0;
+    for (int i = 0; i < nBytes; ++i) {
+        crc ^= data[i];
+        // Add your CRC algorithm logic here
+    }
+
+    return crc;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        write(2, "Usage: generateChecksum <input_file> <output_file>\n", 51);
+        exit(5);
+    }
+
+    int inputFile = open(argv[1], O_RDONLY);
+    if (inputFile == -1) {
+        exit(5);
+    }
+
+    int outputFile = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    if (outputFile == -1) {
+        close(inputFile);
+        exit(5);
+    }
+
+    int bytesRead, blockCount = 0;
+
+    while ((bytesRead = read(inputFile, buf, sizeof(buf))) > 0) {
+        unsigned char crc = computeCRC(buf, bytesRead);
+        if (write(outputFile, &crc, 1) == -1) {
+            close(inputFile);
+            close(outputFile);
+            exit(5);
+        }
+
+        blockCount++;
+    }
+
+    close(inputFile);
+    close(outputFile);
+
+    char blockCountStr[32];
+    int countStrLen = sprintf(blockCountStr, "%d", blockCount);
+    write(1, blockCountStr, countStrLen);
+
+    return 0;
+}
